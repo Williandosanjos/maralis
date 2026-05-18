@@ -1,0 +1,51 @@
+name: PR Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+# Cancela execuções antigas da mesma PR
+concurrency:
+  group: pr-workflow-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Permissões mínimas para CI de PR
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    # Não roda enquanto o PR estiver como draft
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # Checkout do código
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Configura Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Configura Gradle e cache moderno
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # Garante permissão de execução do wrapper
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Build + testes em uma única execução
+      #- name: Build and test with Gradle
+      #  run: ./gradlew build --no-daemon
